@@ -44,7 +44,8 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String,
     googleId: String,
-    facebookId: String
+    facebookId: String,
+    secret: String
 });
 
 // USER SCHEMA
@@ -126,21 +127,35 @@ app.get('/auth/facebook/secrets',
 
     // Login
 
-app.get(("/login"),(req, res) => {
+app.get("/login",(req, res) => {
     res.render('login')
 });
 
     // Register
 
-app.get(("/register"),(req, res) => {
+app.get("/register",(req, res) => {
     res.render('register');
 });
 
     // Secrets
 
-app.get(('/secrets'), (req, res) => {
+app.get('/secrets', (req, res) => {
+    User.find({'secret': {$ne: null}}, (err, foundUsers) => {
+        if (err) {
+            console.log(err)
+        } else {
+            if (foundUsers) {
+                res.render('secrets', {usersWithSecrets: foundUsers});
+            }
+        }
+    });
+});
+
+    // Submit
+
+app.get('/submit', (req, res) => {
     if (req.isAuthenticated()) {
-        res.render('secrets');
+        res.render('submit');
     } else {
         res.redirect('/login');
         console.log(req.isAuthenticated());
@@ -149,7 +164,7 @@ app.get(('/secrets'), (req, res) => {
 
     // Logout
 
-app.get(('/logout'), (req, res) => {
+app.get('/logout', (req, res) => {
     req.logout((err) => {
         if (err){
             console.log(err);
@@ -198,7 +213,26 @@ app.post('/login', (req, res) => {
 
 });
 
+    // Submit
+
+app.post('/submit', (req, res) => {
+    const submittedSecret = req.body.secret;
+
+    User.findById(req.user.id, (err, foundUser) => {
+        if (err) {
+            console.log(err);
+        } else {
+            if (foundUser) {
+                foundUser.secret = submittedSecret;
+                foundUser.save(() => {
+                    res.redirect('/secrets');
+                });
+            }  
+        }
+    });
+});
+
 // LISTEN
 app.listen(PORT, () => {
     console.log('App is running on port', PORT);
-})
+});
